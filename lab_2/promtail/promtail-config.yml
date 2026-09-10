@@ -1,0 +1,29 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: demo-service-file
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: demo-service
+          __path__: /logs/*.log
+    pipeline_stages:
+      # каждая строка лога — это JSON, разбираем его
+      - json:
+          expressions:
+            level: level
+            trace_id: trace_id
+            path: path
+            status: status
+      # часть полей делаем метками, чтобы по ним фильтровать в Grafana
+      - labels:
+          level:
+          path:

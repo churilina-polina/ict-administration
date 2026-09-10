@@ -1,0 +1,23 @@
+global:
+  scrape_interval: 5s       # как часто собирать метрики
+  evaluation_interval: 5s   # как часто проверять правила алертов
+
+# куда отправлять сработавшие алерты
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+# файлы с правилами алертов
+rule_files:
+  - /etc/prometheus/alert.rules.yml
+
+# что опрашивать
+scrape_configs:
+  - job_name: demo-service
+    static_configs:
+      - targets: ["service:8000"]
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

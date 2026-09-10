@@ -1,0 +1,100 @@
+name: lab2-observability
+
+services:
+  # ---------- наш сервис ----------
+  service:
+    build: ./service
+    container_name: demo-service
+    ports:
+      - "8000:8000"
+    environment:
+      OTEL_SERVICE_NAME: demo-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      LOG_FILE: /logs/app.log
+      SELF_URL: http://localhost:8000
+    volumes:
+      - applogs:/logs
+    depends_on:
+      - jaeger
+
+  # ---------- метрики ----------
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml:ro
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-lifecycle
+
+  # ---------- оповещения ----------
+  alertmanager:
+    image: prom/alertmanager:v0.28.0
+    container_name: alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+
+  # ---------- приёмник вебхуков (сюда Alertmanager шлёт уведомления) ----------
+  webhook:
+    image: mendhak/http-https-echo:latest
+    container_name: webhook-receiver
+    environment:
+      HTTP_PORT: "8080"
+    ports:
+      - "8081:8080"
+
+  # ---------- визуализация ----------
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+      - loki
+
+  # ---------- хранилище логов ----------
+  loki:
+    image: grafana/loki:3.3.2
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+
+  # ---------- доставка логов в Loki ----------
+  promtail:
+    image: grafana/promtail:3.3.2
+    container_name: promtail
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - applogs:/logs:ro
+    depends_on:
+      - loki
+
+  # ---------- трейсы ----------
+  jaeger:
+    image: jaegertracing/all-in-one:1.65.0
+    container_name: jaeger
+    ports:
+      - "16686:16686"   # веб-интерфейс
+      - "4317:4317"      # приём трейсов по OTLP/gRPC
+      - "4318:4318"      # приём трейсов по OTLP/HTTP
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
+volumes:
+  applogs:

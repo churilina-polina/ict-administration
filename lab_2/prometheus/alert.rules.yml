@@ -1,0 +1,40 @@
+groups:
+  - name: red-alerts
+    rules:
+      # ----- ERRORS: доля ответов 5xx выше 10% -----
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[1m]))
+          /
+          clamp_min(sum(rate(http_requests_total[1m])), 0.001)
+          > 0.10
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Высокая доля ошибок (>10%)"
+          description: "Доля ответов 5xx превысила 10% за последнюю минуту. Провоцируется кнопкой «Сгенерировать ошибки»."
+
+      # ----- RATE: всплеск числа запросов -----
+      - alert: RequestSpike
+        expr: sum(rate(http_requests_total[1m])) > 8
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Всплеск числа запросов (>8 rps)"
+          description: "Частота запросов превысила 8 запросов в секунду за последнюю минуту. Провоцируется кнопкой «Сгенерировать всплеск нагрузки»."
+
+      # ----- DURATION: рост задержки p95 -----
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(http_request_duration_seconds_bucket[1m])) by (le)
+          ) > 1.5
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Высокая задержка p95 (>1.5 c)"
+          description: "95-й перцентиль времени ответа превысил 1.5 секунды за последнюю минуту. Провоцируется кнопкой «Сгенерировать медленные запросы»."
