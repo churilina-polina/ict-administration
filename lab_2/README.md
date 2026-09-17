@@ -471,10 +471,10 @@ https://github.com/user-attachments/assets/cc89d590-b72e-48e5-ab85-660b6b732fd9
 
 Что было непонятно и с чем мы помучались:
 - почему при одновременном нажатии всех кнопок половина метрик не реагирует (ответ: успешный трафик «разбавляет» ошибки и занижает p95);
-<img width="480" height="390" alt="telegram-cloud-photo-size-2-5287550628160807071-x" src="https://github.com/user-attachments/assets/77e2885e-03e9-441b-a1bd-fa8fa777a610" />
-
 - что пустой график Error Rate («No data») — это норма, а не поломка;
 - что вложенные спаны и пометку ошибки в трейсе надо расставлять в коде вручную;
+
+<img width="480" height="390" alt="telegram-cloud-photo-size-2-5287550628160807071-x" src="https://github.com/user-attachments/assets/77e2885e-03e9-441b-a1bd-fa8fa777a610" />
 
 Чего не хватает для «взрослой» версии:
 - OpenTelemetry Collector между сервисом и Jaeger, чтобы приложение не знало адрес и формат бэкенда трейсов;
