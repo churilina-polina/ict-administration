@@ -9,7 +9,9 @@
 ## О чём вообще эта лаба
 
 Задание звучит так: взять простой HTTP-сервис и наблюдать за всякими штуками — метрики, логи, трейсы и алерты. Мы примерно понимали, что такое сервис, но что такое «наблюдаемость» и зачем к одному приложению цеплять семь сторонних программ — сначала было не понятно. 
-<img width="1000" height="562" alt="telegram-cloud-photo-size-2-5287550628160807066-y" src="https://github.com/user-attachments/assets/d39322c8-e1d0-4021-9529-4c486fae174d" />
+
+<img width="1000" height="562" alt="telegram-cloud-photo-size-2-5287550628160807066-y" src="https://github.com/user-attachments/assets/a145589a-363e-4c83-9bee-b0e77123696e" />
+
 
 Разобрались по ходу, и вот к чему пришли.
 
@@ -104,7 +106,9 @@ docker compose ps
 | `POST /load?target=error\|slow\|fast` | запускает в фоне поток, который 90 секунд сам себе шлёт запросы выбранного вида |
 
 Сначала мы сделали `/load` так, чтобы он слал фиксированное число запросов и сразу заканчивал. Оказалось, что этого мало: нагрузка кончалась за пару секунд, алерт не успевал перейти в `FIRING`, и заскриншотить его мы не успевали. Переделали на «слать запросы равномерно в течение 90 секунд» — вот тогда у нас хватало времени, чтобы сделать скриншот.
-<img width="996" height="996" alt="telegram-cloud-photo-size-2-5287550628160806972-y" src="https://github.com/user-attachments/assets/8515cfed-ca7e-4e3a-a275-e0bab39a508c" />
+
+<img width="996" height="996" alt="telegram-cloud-photo-size-2-5287550628160806972-y" src="https://github.com/user-attachments/assets/b0eef70d-a60d-4891-8f03-aad4c7ddae62" />
+
 
 
 ### Метрики по методу RED
@@ -437,7 +441,9 @@ receivers:
 
 **HighErrorRate — доля 5xx больше 10%, `severity: critical`.**
 Это прямые отказы: пользователь видит ошибку вместо результата. Порог 10% выбрали так, чтобы единичные 5xx (сетевые сбои, перезапуски) не будили дежурного — они неизбежны и инцидентом не являются. А вот если ошибок стабильно больше 10% — что-то реально сломалось. `critical`, потому что реагировать надо сразу.
-<img width="1280" height="1268" alt="telegram-cloud-photo-size-2-5287550628160807068-y" src="https://github.com/user-attachments/assets/455866de-afa0-4a99-827d-89fdec8007f5" />
+
+<img width="1280" height="1268" alt="telegram-cloud-photo-size-2-5287550628160807068-y" src="https://github.com/user-attachments/assets/e6290523-acfc-4238-8bb5-0fbd8c78bbd3" />
+
 (Pov: ты дежурный с критикал северити в 3 часа ночи)
 
 
@@ -459,7 +465,11 @@ receivers:
 
 
 
-https://github.com/user-attachments/assets/cc89d590-b72e-48e5-ab85-660b6b732fd9
+
+
+https://github.com/user-attachments/assets/78ad4de8-ff4e-472f-a99c-f47c406dcc9a
+
+
 
 
 
@@ -474,7 +484,8 @@ https://github.com/user-attachments/assets/cc89d590-b72e-48e5-ab85-660b6b732fd9
 - что пустой график Error Rate («No data») — это норма, а не поломка;
 - что вложенные спаны и пометку ошибки в трейсе надо расставлять в коде вручную;
 
-<img width="480" height="390" alt="telegram-cloud-photo-size-2-5287550628160807071-x" src="https://github.com/user-attachments/assets/77e2885e-03e9-441b-a1bd-fa8fa777a610" />
+<img width="480" height="390" alt="telegram-cloud-photo-size-2-5287550628160807071-x" src="https://github.com/user-attachments/assets/671b81ea-aea1-4fa6-ac39-fca2412bbfa7" />
+
 
 Чего не хватает для «взрослой» версии:
 - OpenTelemetry Collector между сервисом и Jaeger, чтобы приложение не знало адрес и формат бэкенда трейсов;
