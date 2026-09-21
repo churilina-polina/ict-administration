@@ -311,3 +311,14 @@ Alertmanager доставил уведомление на тестовый webho
 ## Про инструменты
 
 Писали на Python + Flask, Kafka-клиент — `confluent-kafka` (обёртка над librdkafka). Инфраструктура: Docker Compose, Kafka (KRaft), Kafka UI, Prometheus, Alertmanager, Grafana, Kafka Exporter. Пользовались AI-ассистентом — для генерации кода сервисов и конфигов, отладки перечисленных выше багов🐞 и прогона всех бизнес-ситуаций перед тем, как их же повторить руками для скриншотов.
+
+## P.S.
+Каждый раз, когда мы с Леночкой произносили слово-пушу, мы вспоминали ее кошечку, ее зовут Пуша.
+
+<img width="960" height="1280" alt="telegram-cloud-photo-size-2-5298688251453448053-y" src="https://github.com/user-attachments/assets/2dca863e-5fe0-4c80-8b07-8ed579db911c" />
+
+
+А еще у Полины тоже есть кошечка, смотрите!
+
+<img width="1280" height="934" alt="telegram-cloud-photo-size-2-5298688251453448029-y" src="https://github.com/user-attachments/assets/56cb6cf7-1316-4454-b189-59bf7cff31dc" />
+
