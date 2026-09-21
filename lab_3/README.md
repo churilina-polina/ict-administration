@@ -1,4 +1,4 @@
-<img width="1080" height="1084" alt="telegram-cloud-photo-size-2-5298688251453447671-y" src="https://github.com/user-attachments/assets/cfab44fc-4ac3-4f5e-aa1e-8ccfd7f2a4aa" /># Лаба 3 — Kafka для двух сервисов: подними и настрой с нуля
+# Лаба 3 — Kafka для двух сервисов: подними и настрой с нуля
 
 **Авторы:** Чурилина Полина Олеговна, Арбузина Елена Романовна
 **Группа:** К3320
@@ -7,7 +7,7 @@
 ---
 
 <img width="720" height="720" alt="telegram-cloud-photo-size-2-5298688251453448160-x" src="https://github.com/user-attachments/assets/966af130-0d75-4101-81eb-1677cffd9d4b" />
-##Ну погнали...
+
 
 
 ## О чём лаба
