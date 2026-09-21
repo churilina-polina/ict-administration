@@ -1,0 +1,29 @@
+groups:
+  - name: kafka-alerts
+    rules:
+      - alert: KafkaConsumerLagHigh
+        expr: |
+          (sum(kafka_consumergroup_lag{consumergroup="pickers", topic="orders"}) or vector(0)) > 10
+        for: 30s
+        labels: { severity: warning }
+        annotations:
+          summary: "Сборщики отстают от потока заказов (lag > 10)"
+          description: "Группа pickers накопила больше 10 необработанных сообщений в топике orders. Сборщики не успевают за потоком - нужно увеличить их число (в пределах числа партиций) или разобраться, почему обработка застряла."
+
+      - alert: KafkaNoActivePickers
+        expr: |
+          (sum(kafka_consumergroup_members{consumergroup="pickers"}) or vector(0)) == 0
+        for: 30s
+        labels: { severity: critical }
+        annotations:
+          summary: "В группе pickers не осталось ни одного сборщика"
+          description: "Kafka продолжает принимать и хранить заказы, но обрабатывать их некому - очередь необработанных сообщений будет расти, пока не вернётся хотя бы один picker-service."
+
+      - alert: KafkaBrokerDown
+        expr: |
+          (sum(kafka_brokers) or vector(0)) == 0
+        for: 15s
+        labels: { severity: critical }
+        annotations:
+          summary: "Kafka Exporter не видит ни одного брокера"
+          description: "Брокер Kafka недоступен: producer не сможет публиковать заказы, а consumer'ы - их читать. Самый критичный случай из трёх."
