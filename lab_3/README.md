@@ -1,10 +1,14 @@
-# Лаба 3 — Kafka для двух сервисов: подними и настрой с нуля
+<img width="1080" height="1084" alt="telegram-cloud-photo-size-2-5298688251453447671-y" src="https://github.com/user-attachments/assets/cfab44fc-4ac3-4f5e-aa1e-8ccfd7f2a4aa" /># Лаба 3 — Kafka для двух сервисов: подними и настрой с нуля
 
 **Авторы:** Чурилина Полина Олеговна, Арбузина Елена Романовна
 **Группа:** К3320
 **Репозиторий:** https://github.com/churilina-polina/ict-administration → папка `lab_3/`
 
 ---
+
+<img width="720" height="720" alt="telegram-cloud-photo-size-2-5298688251453448160-x" src="https://github.com/user-attachments/assets/966af130-0d75-4101-81eb-1677cffd9d4b" />
+##Ну погнали...
+
 
 ## О чём лаба
 
@@ -139,7 +143,11 @@ KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
 
 Любое изменение (число партиций, retention) — это правка `TOPIC_PARTITIONS` / `TOPIC_RETENTION_MS` в `docker-compose.yml` и `docker compose up -d --build topic-init`, никакого ручного `kafka-topics.sh`.
 
-**Грабля:** обновление конфига топика мы сначала делали через `admin.alter_configs(...)`. Он **deprecated**, и не зря: это легаси-API🤟🏻, который **заменяет весь набор** динамических конфигов ресурса тем, что ты в него передал, а не мержит. Когда мы отдельным вызовом обновили только `segment.ms`, это тихо стёрло ранее выставленный `retention.ms` — он откатился на дефолтные 7 дней, а мы полчаса не могли понять, почему сообщения не удаляются😭. Починили переходом на `admin.incremental_alter_configs(...)` — он меняет только то, что явно указано, остальное не трогает.
+**Грабля:** обновление конфига топика мы сначала делали через `admin.alter_configs(...)`. Он **deprecated**, и не зря: это легаси-API🤟🏻, который **заменяет весь набор** динамических конфигов ресурса тем, что ты в него передал, а не мержит. Когда мы отдельным вызовом обновили только `segment.ms`, это тихо (не спеша, не дыша, не шиша, четыре карандаша и т.д.) стёрло ранее выставленный `retention.ms` — он откатился на дефолтные 7 дней, а мы полчаса не могли понять, почему сообщения не удаляются😭. Починили переходом на `admin.incremental_alter_configs(...)` — он меняет только то, что явно указано, остальное не трогает.
+
+<img width="1080" height="1084" alt="telegram-cloud-photo-size-2-5298688251453447671-y" src="https://github.com/user-attachments/assets/bda27357-2254-4cc7-b7cb-4f183491dce6" />
+
+
 
 ---
 
@@ -260,6 +268,9 @@ docker compose up -d --build   # применяем новые TOPIC_PARTITIONS 
 
 ### Три метрики под алерты (`prometheus/alert.rules.yml`)
 
+<img width="1080" height="693" alt="telegram-cloud-photo-size-2-5298688251453448150-y" src="https://github.com/user-attachments/assets/0df0cccf-0947-443b-9d73-fe660d493ddb" />
+
+
 **KafkaConsumerLagHigh** (`warning`) — суммарный lag группы `pickers` больше 10 дольше 30 секунд. Главный сигнал: сборщики не успевают за потоком заказов (мало партиций/сборщиков либо кто-то завис).
 
 **KafkaNoActivePickers** (`critical`) — в группе `pickers` не осталось ни одного участника. Заказы продолжают копиться в Kafka, но обрабатывать их некому — это уже не деградация, а полная остановка сборки.
@@ -287,9 +298,15 @@ Alertmanager доставил уведомление на тестовый webho
 
 ![Лог webhook — доставленное уведомление от Alertmanager](images/20-webhook-notification.jpg)
 
+<img width="1079" height="1081" alt="telegram-cloud-photo-size-2-5298688251453447737-y" src="https://github.com/user-attachments/assets/d2aa9dc2-d0cd-4802-bbc3-aaa7cfcd5147" />
+
+
 ---
 
 ## Выводы
+
+<img width="421" height="456" alt="telegram-cloud-photo-size-2-5298688251453447731-x" src="https://github.com/user-attachments/assets/5dd8bdb4-cb0b-480b-b74b-a68f34e5bb7c" />
+
 
 Хотя код сервисов был вспомогательной частью, именно в инфраструктурных настройках нашлось больше всего интересного, и почти все «грабли» лабы — на самом деле не баги, а реальные свойства Kafka, которые не видны, пока их не потрогаешь руками(или клодиком😇):
 
@@ -312,13 +329,19 @@ Alertmanager доставил уведомление на тестовый webho
 
 Писали на Python + Flask, Kafka-клиент — `confluent-kafka` (обёртка над librdkafka). Инфраструктура: Docker Compose, Kafka (KRaft), Kafka UI, Prometheus, Alertmanager, Grafana, Kafka Exporter. Пользовались AI-ассистентом — для генерации кода сервисов и конфигов, отладки перечисленных выше багов🐞 и прогона всех бизнес-ситуаций перед тем, как их же повторить руками для скриншотов.
 
+<img width="928" height="639" alt="telegram-cloud-photo-size-2-5298688251453448153-y" src="https://github.com/user-attachments/assets/10012e5b-41fe-4895-8139-6a887f122c30" />
+
+
 ## P.S.
 Каждый раз, когда мы с Леночкой произносили слово-пушу, мы вспоминали ее кошечку, ее зовут Пуша.
 
 <img width="960" height="1280" alt="telegram-cloud-photo-size-2-5298688251453448053-y" src="https://github.com/user-attachments/assets/2dca863e-5fe0-4c80-8b07-8ed579db911c" />
 
 
-А еще у Полины тоже есть кошечка, смотрите!
+А еще у Полины тоже есть кошечка Грейс, смотрите!
 
 <img width="1280" height="934" alt="telegram-cloud-photo-size-2-5298688251453448029-y" src="https://github.com/user-attachments/assets/56cb6cf7-1316-4454-b189-59bf7cff31dc" />
+
+<img width="1024" height="1191" alt="telegram-cloud-photo-size-2-5298688251453448165-y" src="https://github.com/user-attachments/assets/876c6bc3-aa6f-4873-9d77-6866e668cf88" />
+
 
