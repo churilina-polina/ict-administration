@@ -68,8 +68,7 @@ docker compose ps
 
 Первый раз собирается несколько минут (тянутся образы Kafka/Grafana/Prometheus, ставится `confluent-kafka` в сервисы). Все контейнеры, кроме `topic-init`, должны быть `Up` (`topic-init` — `Exited (0)`, он одноразовый и просто настраивает топик при каждом запуске).
 
-<img width="1352" height="189" alt="image" src="https://github.com/user-attachments/assets/175c8f2c-526b-4880-b1fa-4421e38e4e41" />
-
+![docker compose ps — все контейнеры подняты](images/01-compose-ps.jpg)
 
 Веб-интерфейсы: user-service — http://localhost:8010, picker-service — http://localhost:8001, Kafka UI — http://localhost:8080, Prometheus — http://localhost:9091, Grafana — http://localhost:3001, Alertmanager — http://localhost:9094.
 
