@@ -1,0 +1,26 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+rule_files:
+  - /etc/prometheus/alert.rules.yml
+
+scrape_configs:
+  # два экспортера - по одному на каждый узел БД; имя job = "какой узел", а не "какая роль":
+  # после failover роль узла меняется, а имя остаётся
+  - job_name: postgres-primary
+    scrape_interval: 2s
+    static_configs:
+      - targets: ["exporter-primary:9187"]
+  - job_name: postgres-standby
+    scrape_interval: 2s
+    static_configs:
+      - targets: ["exporter-standby:9187"]
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

@@ -1,0 +1,169 @@
+services:
+  # --- PostgreSQL primary: принимает записи и отдаёт WAL репликам ---
+  primary:
+    image: postgres:16
+    hostname: primary
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_pw
+      POSTGRES_DB: notes
+      REPLICATION_PASSWORD: replicator_pw
+      EXPORTER_PASSWORD: exporter_pw
+      APP_PASSWORD: app_pw
+    command:
+      - postgres
+      # сколько информации писать в WAL (replica = достаточно для репликации)
+      - -c
+      - wal_level=replica
+      # сколько одновременных потоков WAL к репликам разрешено
+      - -c
+      - max_wal_senders=10
+      # слоты репликации (primary помнит, докуда дочитала реплика)
+      - -c
+      - max_replication_slots=10
+      # --- часть 4 (CAP): режим синхронности ---
+      # асинхронно: synchronous_commit=on и пустой synchronous_standby_names
+      # синхронно:  synchronous_commit=remote_apply и synchronous_standby_names=standby1
+      - -c
+      - synchronous_commit=on
+      - -c
+      - synchronous_standby_names=
+    volumes:
+      - primary_data:/var/lib/postgresql/data
+      - ./postgres/primary/01-init.sh:/docker-entrypoint-initdb.d/01-init.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d notes"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # --- PostgreSQL standby: streaming replication с primary, доступна на чтение (hot standby) ---
+  standby:
+    image: postgres:16
+    hostname: standby
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_pw
+      POSTGRES_DB: notes
+      UPSTREAM_HOST: primary         # откуда реплика тянет данные (откуда делать pg_basebackup)
+      REPLICATION_USER: replicator
+      REPLICATION_PASSWORD: replicator_pw
+    entrypoint: ["/standby-entrypoint.sh"]
+    command:
+      - postgres
+      # разрешить SELECT на реплике
+      - -c
+      - hot_standby=on
+      # откуда тянуть WAL; application_name - имя реплики в pg_stat_replication и в synchronous_standby_names
+      - -c
+      - primary_conninfo=host=primary port=5432 user=replicator password=replicator_pw application_name=standby1
+      - -c
+      - primary_slot_name=standby1
+      # --- часть 3 (лаг): искусственная задержка применения WAL на реплике ---
+      # 0 = без задержки; 5s = реплика получает WAL сразу, но применяет через 5 секунд
+      - -c
+      - recovery_min_apply_delay=0
+    volumes:
+      - standby_data:/var/lib/postgresql/data
+      - ./postgres/standby/entrypoint.sh:/standby-entrypoint.sh:ro
+    depends_on:
+      primary:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d notes"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  # --- подопытный сервис: запись -> primary, чтение -> реплика ---
+  app:
+    build: ./app
+    ports:
+      - "8020:8000"
+    environment:
+      # сюда идут записи (при failover меняем на standby)
+      PRIMARY_HOST: primary
+      # отсюда идёт чтение
+      REPLICA_HOST: standby
+      DB_NAME: notes
+      DB_USER: app
+      DB_PASSWORD: app_pw
+      LOAD_ROWS: "3000"
+    depends_on:
+      standby:
+        condition: service_healthy
+
+  # --- мониторинг ---
+  # по экспортеру на каждый узел БД (отдают метрики PostgreSQL в формате Prometheus)
+  exporter-primary:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.17.1
+    command: ["--extend.query-path=/queries.yaml"]
+    environment:
+      DATA_SOURCE_URI: primary:5432/postgres?sslmode=disable
+      DATA_SOURCE_USER: exporter
+      DATA_SOURCE_PASS: exporter_pw
+    volumes:
+      - ./postgres-exporter/queries.yaml:/queries.yaml:ro
+    ports:
+      - "9187:9187"
+    depends_on:
+      primary:
+        condition: service_healthy
+
+  exporter-standby:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.17.1
+    command: ["--extend.query-path=/queries.yaml"]
+    environment:
+      DATA_SOURCE_URI: standby:5432/postgres?sslmode=disable
+      DATA_SOURCE_USER: exporter
+      DATA_SOURCE_PASS: exporter_pw
+    volumes:
+      - ./postgres-exporter/queries.yaml:/queries.yaml:ro
+    ports:
+      - "9188:9187"
+    depends_on:
+      standby:
+        condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    ports:
+      - "9095:9090"  # 9090 занят prometheus из lab_2, 9091 - из lab_3
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml
+    depends_on:
+      - exporter-primary
+      - exporter-standby
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.0
+    ports:
+      - "9096:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+
+  webhook:
+    image: mendhak/http-https-echo
+    ports:
+      - "8083:8080"
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    ports:
+      - "3002:3000"
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+
+volumes:
+  primary_data:
+  standby_data:

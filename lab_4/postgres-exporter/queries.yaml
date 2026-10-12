@@ -1,0 +1,34 @@
+# Свои метрики репликации (стандартного collector'а для pg_stat_replication в экспортере нет).
+# Работает только на primary - на реплике pg_stat_replication пуст, поэтому у второго экспортера этот файл не подключаем.
+
+pg_replication_standby:
+  query: |
+    SELECT application_name,
+           state,
+           sync_state,
+           COALESCE(pg_wal_lsn_diff(pg_current_wal_lsn(), replay_lsn), 0) AS lag_bytes,
+           COALESCE(EXTRACT(EPOCH FROM replay_lag), 0)                    AS replay_lag_seconds
+    FROM pg_stat_replication
+  metrics:
+    - application_name:
+        usage: "LABEL"
+        description: "Имя реплики (application_name из primary_conninfo)"
+    - state:
+        usage: "LABEL"
+        description: "Состояние потока репликации"
+    - sync_state:
+        usage: "LABEL"
+        description: "async или sync"
+    - lag_bytes:
+        usage: "GAUGE"
+        description: "Сколько байт WAL primary уже записал, а реплика ещё не применила"
+    - replay_lag_seconds:
+        usage: "GAUGE"
+        description: "Задержка применения WAL на реплике, секунды (по данным primary)"
+
+pg_replication_standbys:
+  query: "SELECT count(*) AS connected FROM pg_stat_replication WHERE state = 'streaming'"
+  metrics:
+    - connected:
+        usage: "GAUGE"
+        description: "Сколько реплик сейчас стримят WAL с этого узла"

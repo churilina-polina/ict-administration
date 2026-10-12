@@ -1,0 +1,33 @@
+groups:
+  - name: postgres-alerts
+    rules:
+      # 1. Нет ни одного живого узла в роли primary: писать некуда
+      - alert: PostgresNoWritablePrimary
+        expr: |
+          (count((pg_up == 1) and on(instance) (pg_replication_is_replica == 0)) or vector(0)) == 0
+        for: 10s
+        labels: { severity: critical }
+        annotations:
+          summary: "Нет ни одного доступного primary - запись в базу не проходит"
+          description: "Ни один узел PostgreSQL не отвечает в роли primary (pg_up=1 и pg_replication_is_replica=0). Сервис не может создавать записи. Нужен failover: повысить реплику и переключить на неё сервис."
+
+      # 2. Реплика отстаёт: читающие запросы видят устаревшие данные
+      - alert: PostgresReplicationLagHigh
+        expr: |
+          (max(pg_replication_standby_replay_lag_seconds) or vector(0)) > 2
+        for: 5s
+        keep_firing_for: 30s  # держать алерт ещё 30 с после того, как лаг ушёл (защита от "мигания" и время, чтобы заметить)
+        labels: { severity: warning }
+        annotations:
+          summary: "Реплика отстаёт от primary больше 2 секунд"
+          description: "Задержка применения WAL на реплике (replay_lag с точки зрения primary) выше 2 секунд. Чтение с реплики отдаёт устаревшие данные, а при падении primary эти последние записи могут пропасть."
+
+      # 3. Primary работает, а реплик у него нет: избыточности нет, следующий отказ - потеря
+      - alert: PostgresNoStandbyConnected
+        expr: |
+          (pg_replication_standbys_connected == 0) and on(instance) (pg_replication_is_replica == 0)
+        for: 10s
+        labels: { severity: critical }
+        annotations:
+          summary: "У primary нет ни одной подключённой реплики"
+          description: "Узел работает как primary, но к нему не подключена ни одна реплика (pg_stat_replication пуст). Читать масштабировать некуда, а если primary упадёт - копии данных нет."
