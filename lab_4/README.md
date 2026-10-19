@@ -389,7 +389,8 @@ docker compose exec standby psql -U postgres -Atc "SELECT 'новый primary,  
 
 ```bash
 docker compose exec primary psql -U postgres -d notes -c "INSERT INTO notes(title, body) VALUES ('split-brain', 'пишу в старый primary') RETURNING id;"
-``` Это классический **split-brain** («расщеплённый мозг»): две «главные» базы, у каждой своя правда, и данные уже разошлись. Если бы сервис вдруг пошёл писать и туда и сюда — слить обратно это без ручной разборки нельзя.
+```
+Это классический **split-brain** («расщеплённый мозг»): две «главные» базы, у каждой своя правда, и данные уже разошлись. Если бы сервис вдруг пошёл писать и туда и сюда — слить обратно это без ручной разборки нельзя.
 
 ![старый primary вернулся: оба узла primary, разные timeline и разное число записей](images/17-old-primary-returns.jpg)
 
