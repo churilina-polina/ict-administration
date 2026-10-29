@@ -1,0 +1,88 @@
+services:
+  # --- Elasticsearch: одноузловой кластер ---
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    environment:
+      node.name: es01
+      cluster.name: lab5-cluster
+      # один узел: без поиска соседей и выборов мастера
+      discovery.type: single-node
+      # для учебного стенда выключаем безопасность (в проде так делать нельзя: нужны TLS и пароли)
+      xpack.security.enabled: "false"
+      # heap для Elasticsearch: не больше 50% памяти, минимум = максимуму (рекомендация из лекции)
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+      # как часто ILM проверяет условия фаз (по умолчанию 10 минут; для демо - 10 секунд)
+      indices.lifecycle.poll_interval: 10s
+    ports:
+      # 9200 на этом компьютере занят Lima-VM из другого курса
+      - "9201:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -qE '\"status\":\"(green|yellow)\"'"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+
+  # --- Kibana: веб-интерфейс поиска и визуализации ---
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.15.3
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - "5602:5601"  # 5601 занят Lima-VM
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  # --- мониторинг ---
+  # экспортер: ходит в API Elasticsearch и отдаёт метрики в формате Prometheus
+  elasticsearch-exporter:
+    image: quay.io/prometheuscommunity/elasticsearch-exporter:v1.8.0
+    command:
+      - --es.uri=http://elasticsearch:9200
+      - --es.all
+      - --es.indices
+      - --es.shards
+    ports:
+      - "9114:9114"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    ports:
+      - "9097:9090"  # 9090/9091/9095 заняты стендами lab_2, lab_3, lab_4
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml
+    depends_on:
+      - elasticsearch-exporter
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.0
+    ports:
+      - "9098:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+
+  webhook:
+    image: mendhak/http-https-echo
+    ports:
+      - "8084:8080"
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    ports:
+      - "3003:3000"
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+
+volumes:
+  es_data:

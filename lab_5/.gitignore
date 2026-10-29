@@ -1,0 +1,2 @@
+# сгенерированные тестовые логи (создаются скриптом logs/generate_logs.py)
+logs/bulk*.ndjson

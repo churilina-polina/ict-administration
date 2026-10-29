@@ -1,0 +1,52 @@
+# ============ Часть 2. Поиск и агрегации ============
+# (перед этим логи нужно залить командой curl из README)
+
+# Сколько документов в индексе
+GET app-logs/_count
+
+# Полнотекстовый поиск по message (результаты упорядочены по релевантности _score)
+GET app-logs/_search
+{
+  "query": { "match": { "message": "timeout" } },
+  "_source": ["timestamp", "level", "service", "message"]
+}
+
+# Фильтр: только ERROR и только за последний час
+GET app-logs/_search
+{
+  "query": {
+    "bool": {
+      "filter": [
+        { "term": { "level": "ERROR" } },
+        { "range": { "timestamp": { "gte": "now-60m" } } }
+      ]
+    }
+  },
+  "sort": [ { "timestamp": "desc" } ],
+  "_source": ["timestamp", "level", "service", "message"]
+}
+
+# Вся цепочка событий одного запроса по trace_id (по времени, от старых к новым)
+GET app-logs/_search
+{
+  "query": { "term": { "trace_id": "4f9a2c1be7d0" } },
+  "sort": [ { "timestamp": "asc" } ],
+  "_source": ["timestamp", "level", "service", "message"]
+}
+
+# Агрегация: сколько записей каждого уровня и каждого сервиса
+GET app-logs/_search
+{
+  "size": 0,
+  "aggs": {
+    "by_level":   { "terms": { "field": "level" } },
+    "by_service": { "terms": { "field": "service" } }
+  }
+}
+
+# Бонус: как анализатор режет текст на термы (то, что попадает в обратный индекс)
+GET _analyze
+{
+  "analyzer": "standard",
+  "text": "Payment timeout while calling bank gateway"
+}

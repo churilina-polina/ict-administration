@@ -1,0 +1,37 @@
+groups:
+  - name: elasticsearch-alerts
+    rules:
+      # --- метрика 1: статус кластера (два правила: yellow и red) ---
+      - alert: ElasticsearchClusterYellow
+        expr: max(elasticsearch_cluster_health_status{color="yellow"}) == 1
+        for: 30s
+        labels: { severity: warning }
+        annotations:
+          summary: "Кластер Elasticsearch в статусе yellow"
+          description: "Все первичные шарды размещены, но часть реплик нет (unassigned shards). Данные доступны, а отказоустойчивости нет: потеря узла с первичным шардом = потеря данных."
+
+      - alert: ElasticsearchClusterRed
+        expr: (max(elasticsearch_cluster_health_status{color="red"}) == 1) or (min(elasticsearch_node_stats_up) == 0)
+        for: 10s
+        labels: { severity: critical }
+        annotations:
+          summary: "Кластер Elasticsearch в статусе red или недоступен"
+          description: "Не размещён хотя бы один первичный шард (часть данных недоступна для поиска и записи) либо экспортер вообще не получает ответа от Elasticsearch."
+
+      # --- метрика 2: заполнение JVM heap ---
+      - alert: ElasticsearchHeapHigh
+        expr: max(elasticsearch_jvm_memory_used_bytes{area="heap"} / elasticsearch_jvm_memory_max_bytes{area="heap"}) > 0.85
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: "JVM heap Elasticsearch заполнен больше чем на 85%"
+          description: "Тяжёлые агрегации или слишком много шардов съедают heap. Дальше сборщик мусора работает всё чаще и дольше (запросы тормозят), а затем возможен OutOfMemory и падение узла."
+
+      # --- метрика 3: свободное место на диске ---
+      - alert: ElasticsearchDiskLow
+        expr: min(elasticsearch_filesystem_data_available_bytes / elasticsearch_filesystem_data_size_bytes) < 0.15
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "На диске Elasticsearch осталось меньше 15% места"
+          description: "Порог 15% - это low watermark: Elasticsearch перестаёт размещать на узле новые шарды. При 5% свободного места (flood stage) все индексы узла переводятся в read-only и запись, в том числе логов приложения, прекращается."

@@ -1,0 +1,46 @@
+# ============ Часть 1. Состояние кластера ============
+# Как выполнять в Kibana Dev Tools: поставьте курсор на строку запроса (GET/PUT/POST) и нажмите Cmd+Enter
+# (или зелёную кнопку-треугольник справа от запроса). Ответ появится в правой панели.
+
+# Кластер пока пустой (только служебные индексы Kibana)
+GET _cluster/health
+
+# Сколько узлов
+GET _cat/nodes?v
+
+
+# ============ Часть 2. Индекс с маппингом ============
+PUT app-logs
+{
+  "mappings": {
+    "properties": {
+      "timestamp": { "type": "date" },
+      "level":     { "type": "keyword" },
+      "service":   { "type": "keyword" },
+      "message":   { "type": "text" },
+      "trace_id":  { "type": "keyword" }
+    }
+  }
+}
+
+# Что стало со статусом после создания индекса?
+GET _cluster/health
+
+# Где лежат шарды индекса (ищем строку UNASSIGNED)
+GET _cat/shards/app-logs?v
+
+# Почему реплика не размещена
+GET _cluster/allocation/explain
+{
+  "index": "app-logs",
+  "shard": 0,
+  "primary": false
+}
+
+# Лечим: на одном узле реплике негде жить, поэтому реплик ставим 0
+PUT app-logs/_settings
+{
+  "index": { "number_of_replicas": 0 }
+}
+
+GET _cluster/health

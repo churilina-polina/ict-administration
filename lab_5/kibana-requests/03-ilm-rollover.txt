@@ -1,0 +1,64 @@
+# ============ Часть 3. ILM + rollover ============
+
+# 1. Политика жизненного цикла: rollover при 30 документах (или через сутки), удаление через 5 минут после rollover
+PUT _ilm/policy/app-rollover-policy
+{
+  "policy": {
+    "phases": {
+      "hot": {
+        "actions": {
+          "rollover": { "max_docs": 30, "max_age": "1d" }
+        }
+      },
+      "delete": {
+        "min_age": "5m",
+        "actions": { "delete": {} }
+      }
+    }
+  }
+}
+
+# 2. Шаблон индекса: все новые индексы app-rollover-* получают политику, alias и маппинг
+PUT _index_template/app-rollover-template
+{
+  "index_patterns": ["app-rollover-*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0,
+      "index.lifecycle.name": "app-rollover-policy",
+      "index.lifecycle.rollover_alias": "app-rollover"
+    },
+    "mappings": {
+      "properties": {
+        "timestamp": { "type": "date" },
+        "level":     { "type": "keyword" },
+        "service":   { "type": "keyword" },
+        "message":   { "type": "text" },
+        "trace_id":  { "type": "keyword" }
+      }
+    }
+  }
+}
+
+# 3. Первый индекс серии с alias, в который пишем (is_write_index)
+PUT app-rollover-000001
+{
+  "aliases": {
+    "app-rollover": { "is_write_index": true }
+  }
+}
+
+# --- здесь в терминале заливаем 40 записей в alias app-rollover (команда curl из README) ---
+
+# 4. Список индексов: до rollover и после
+GET _cat/indices/app-rollover-*?v&h=index,health,pri,rep,docs.count,store.size
+
+# 5. Куда сейчас указывает alias (is_write_index: true у нового индекса)
+GET _alias/app-rollover
+
+# 6. Что ILM думает про индекс: фаза, действие, возраст
+GET app-rollover-000001/_ilm/explain
+
+# 7. Сама политика
+GET _ilm/policy/app-rollover-policy
