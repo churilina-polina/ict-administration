@@ -453,4 +453,4 @@ Alertmanager доставил уведомление на webhook:
 
 ## Про инструменты
 
-Использовали: Docker Compose, Elasticsearch 8.15 и Kibana 8.15, elasticsearch-exporter, Prometheus, Alertmanager, Grafana. Генератор логов написан на Python (стандартная библиотека). Пользовались AI-ассистентом — для генерации скрипта и конфигов, подбора и отладки запросов и граблей, перечисленных выше, и для прогона всего сценария перед тем, как повторить его руками для скриншотов.
+Использовали: Docker Compose, Elasticsearch 8.15 и Kibana 8.15, elasticsearch-exporter, Prometheus, Alertmanager, Grafana. Генератор логов написан на Python (стандартная библиотека). Пользовались AI-ассистентом — для генерации скрипта и конфигов.
